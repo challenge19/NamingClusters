@@ -11,7 +11,7 @@ __all__ = ['add_background','map_cate_color']
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.cm as cm
-
+import numpy as np
 import plotly.graph_objs as go
 from plotly import tools
 import chart_studio.plotly as py

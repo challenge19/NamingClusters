@@ -159,6 +159,7 @@ def app_layout():
     )
 
     
+    user_name = session.get('username',None)
 
 
 
@@ -169,7 +170,7 @@ def app_layout():
         dbc.Row(
             [
                 dbc.Col(html.Div(children='  Visulization of CWTS paper-level clusters.'), width='auto'),
-                dbc.Col([html.Div(id='showusername',children='login: shen'),
+                dbc.Col([html.Div(id='showusername',children=f'login: {user_name}'),
                         html.Div(id='autosave',children='Not saved')], width='auto'),
                 dbc.Col(
                         dbc.Button('Logout',id='logout-button',color='danger',block=True,size='m'),
@@ -219,7 +220,20 @@ def app_layout():
                     ),
                 html.Label("请输入该节点标签"),
                 html.Div(dcc.Input(id='label-input-box', type='text')),
-                html.Button('提交', id='submit'),
+                html.Label("是否属于分子生物与遗传领域?"),
+                dcc.RadioItems(
+                    id = 'if-cell',
+                    options=[
+                        {'label': '未知  ', 'value': 'unknown'},
+                        {'label': '是  ', 'value': 'yes'},
+                        {'label': '否  ', 'value': 'no'}
+                    ],
+                    value='unknown',
+                    labelClassName="label__option",
+                    inputClassName="input__option",
+                    labelStyle={'display': 'inline-block'}
+                ),
+                    html.Button('提交', id='submit'),
             ])
         ],
         justify='around'),
@@ -228,9 +242,10 @@ def app_layout():
             dbc.Tabs(
                 [
                     dbc.Tab(journal_tab, label='主要期刊'),
+                    dbc.Tab(paper_tab, label='主要论文'),
                     dbc.Tab(wordcloud_tab, label='词云'),
                     dbc.Tab(inst_tab, label='主要机构'),
-                    dbc.Tab(paper_tab, label='主要论文')
+                    
                 ]
             ),
         ),
@@ -385,8 +400,9 @@ def update_cluster_info(clickData):
     [Output(component_id='labeled-name', component_property='children')],
     [Input(component_id='cluster-map', component_property='clickData'),
      Input(component_id='submit', component_property='n_clicks')],
-    [State(component_id='label-input-box',component_property='value')])
-def update_cluster_label(clickData,nclick,label_name):
+    [State(component_id='label-input-box',component_property='value'),
+     State(component_id='if-cell',component_property='value')])
+def update_cluster_label(clickData,nclick,label_name,if_cell):
     ctx = dash.callback_context
     if not ctx.triggered:
         return ['NA']
@@ -401,17 +417,21 @@ def update_cluster_label(clickData,nclick,label_name):
             label = str(label)
             if user_name in labeled_cluster:
                 if label in labeled_cluster[user_name]:
-                    labeled_name = labeled_cluster[user_name][label]
+                    labeled_name = labeled_cluster[user_name][label]['name']
                     labeled_name = [f"{labeled_name}"]
             return labeled_name
         else:
             return ['NA']
     elif trig_id == 'submit':
+        if label_name==None:
+            return ['未标记']
         clusterId = str(clickData['points'][0]['text'].split('<br>')[0].split('：')[-1])
         print(clusterId,user_name,label_name)
         if user_name not in labeled_cluster:
             labeled_cluster[user_name] = {}
-        labeled_cluster[user_name][clusterId] = label_name
+        labeled_cluster[user_name][clusterId] = {}
+        labeled_cluster[user_name][clusterId]['name'] = label_name
+        labeled_cluster[user_name][clusterId]['if-cell'] = if_cell
         write_tofile(labeled_cluster,f'./result/labeled_cluster_micro_{user_name}.txt')
         labeled_name = [f"{label_name}"]
         return labeled_name
@@ -478,7 +498,7 @@ def update_paper_table(clickData):
             },
             style_cell_conditional=[
                 {'if':{'column_id':'Title'},
-                'width':'95%','textAlign': 'right'},
+                'width':'95%','textAlign': 'left'},
                 {'if':{'column_id':'id'},
                 'width':'5%','textAlign': 'center'},
             ],
@@ -538,4 +558,4 @@ def update_ins_table(clickData):
 ###############################################################################
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=True,port=8432)

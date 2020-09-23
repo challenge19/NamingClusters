@@ -1,0 +1,9 @@
+gunicorn
+pandas
+dash
+matplotlib
+dash-bootstrap-components
+chart-studio
+flask-login
+xlrd >= 1.0.0
+openpyxl
